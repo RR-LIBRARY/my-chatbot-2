@@ -1,15 +1,25 @@
 {
-  "name": "nodejs",
+  "name": "my-chatbot-2-backend", // Project ka naam (aap badal sakte hain)
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend server for my-chatbot-2 using Express and Hugging Face", // Description (optional)
   "main": "index.js",
+  "type": "module", // <-- Sabse Zaroori: ES Module syntax (import/export) ke liye
   "scripts": {
+    "start": "node index.js", // <-- Render par chalaane ke liye start script (Recommended)
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [ // Optional keywords
+    "chatbot",
+    "huggingface",
+    "express",
+    "render"
+  ],
+  "author": "RR-LIBRARY", // Aapka naam ya username (optional)
+  "license": "ISC", // Ya aap "MIT" ya koi aur license chun sakte hain
   "dependencies": {
-    "@types/node": "^22.13.11"
+    "@huggingface/inference": "^2.7.0", // <-- Hugging Face client library add karein (Version check kar lein, ^ latest compatible rakhega)
+    "cors": "^2.8.5",                  // <-- CORS middleware add karein
+    "express": "^4.19.2"               // <-- Express framework add karein (Version check kar lein)
+    // "@types/node": "^22.13.11" // <-- Yeh TypeScript types ke liye hai. Agar aap sirf JavaScript use kar rahe hain, toh iski zaroorat nahi hai, hata sakte hain. Agar rakhte hain, toh koi nuksaan nahi.
   }
 }

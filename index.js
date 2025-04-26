@@ -1,94 +1,90 @@
-// --- START OF index.js for Render ---
+// --- START OF index.js for Render (No Comments) ---
 
 import express from 'express';
 import cors from 'cors';
 import { HfInference } from "@huggingface/inference";
-import path from 'path'; // path module import karna zaroori hai
-import { fileURLToPath } from 'url'; // URL se path banane ke liye zaroori hai
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// --- Hugging Face Setup ---
-// !! IMPORTANT !!: Yeh HF_TOKEN Render mein Environment Variable ke taur par set hona chahiye!
 const HF_TOKEN = process.env.HF_TOKEN;
 if (!HF_TOKEN) {
   console.error("!!! FATAL ERROR: Hugging Face Token (HF_TOKEN) environment variable not found!");
   console.error("Please set HF_TOKEN in Render Environment Variables.");
-  process.exit(1); // Token ke bina server start na ho
+  process.exit(1);
 }
 const client = new HfInference(HF_TOKEN);
-// --- End Hugging Face Setup ---
 
-// --- Express Server Setup ---
 const app = express();
-// !! IMPORTANT !!: Render is PORT environment variable ko set karega.
-const PORT = process.env.PORT || 3000; // Default 3000 local ke liye
-
-// __dirname ko ES Modules mein define karna (Aapka original code sahi tha)
+const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// CORS ko enable karein (abhi sabhi ko allow kar rahe hain)
-// Production mein Netlify URL specify karna behtar hai:
-// const corsOptions = { origin: 'YOUR_NETLIFY_APP_URL' }; app.use(cors(corsOptions));
 app.use(cors());
-
-// JSON requests ko parse karne ke liye middleware
 app.use(express.json());
-// --- End Express Server Setup ---
 
-// --- API Endpoint for Chat (/api/chat) ---
 app.post('/api/chat', async (req, res) => {
   const userInput = req.body.message;
+
+  console.log("Request Body Received:", JSON.stringify(req.body));
+
   if (!userInput) {
+    console.error("!!! ERROR: Request body missing 'message' field.");
     return res.status(400).json({ error: 'Request body must contain a "message" field.' });
   }
-  console.log(`Received message for chat API: "${userInput}"`); // Log incoming message
+  console.log(`Received message for chat API: "${userInput}"`);
 
   try {
-    // Set headers for streaming response
+    console.log("Attempting to call Hugging Face API...");
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
 
-    // Start streaming from Hugging Face model
     const stream = client.chatCompletionStream({
-      model: "deepseek-ai/DeepSeek-V3-0324", // Ensure this model is accessible with your token/provider
-      provider: "fireworks-ai",             // Check if this provider is needed or remove if using HF directly
+      model: "deepseek-ai/DeepSeek-V3-0324",
+      provider: "fireworks-ai",
       temperature: 0.4,
       max_tokens: 512,
       top_p: 0.7,
       messages: [{ role: "user", content: userInput }],
     });
 
-    // Process the stream chunk by chunk
+    console.log("Streaming response started...");
     for await (const chunk of stream) {
       if (chunk.choices?.[0]?.delta?.content) {
-        res.write(chunk.choices[0].delta.content); // Write content chunk to response
+        res.write(chunk.choices[0].delta.content);
       }
       if (chunk.choices?.[0]?.finish_reason) {
-        break; // Stop if the model indicates completion
+        console.log("Stream finished with reason:", chunk.choices[0].finish_reason);
+        break;
       }
     }
-    res.end(); // End the response stream
+    res.end();
     console.log('Finished sending streaming response.');
 
   } catch (error) {
-    console.error("\nError during API call or streaming:", error); // Log the full error
+    console.error("\n!!!!!!!! ERROR CAUGHT IN /api/chat !!!!!!!!");
+    console.error("Error Message:", error.message);
+    console.error("Error Stack Trace:", error.stack);
+
+    if (error.response) {
+      console.error("--- Underlying HTTP Response Error Details ---");
+      console.error("Response Status:", error.response.status);
+      console.error("Response Data:", error.response.data);
+      console.error("--------------------------------------------");
+    }
+
+    console.error("Full Error Object Structure:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+
     if (!res.headersSent) {
-       // If no headers sent yet, send a JSON error
-       res.status(500).json({ error: 'Failed to process chat message due to an internal error.' });
+       console.log("Sending 500 error response back to client.");
+       res.status(500).json({ error: 'Failed to process chat message due to an internal server error.' });
     } else {
-       // If headers already sent (mid-stream error), just end the response
+       console.log("Headers already sent, ending response after error.");
        res.end();
     }
   }
 });
-// --- End API Endpoint ---
 
-// --- Serve Frontend ---
-// !! IMPORTANT !!: Static files (CSS, script.js) ko root directory se serve karein
-// Yeh maan raha hai ki index.html, style.css, script.js sab root mein hain
 app.use(express.static(path.join(__dirname)));
-
-// Root URL ('/') par index.html file serve karein
 app.get('/', (req, res) => {
     const indexPath = path.join(__dirname, 'index.html');
     res.sendFile(indexPath, (err) => {
@@ -98,14 +94,10 @@ app.get('/', (req, res) => {
         }
     });
 });
-// --- End Frontend Route ---
 
-// --- Start Server ---
 app.listen(PORT, () => {
-  console.log(`Backend server is running on port ${PORT}`); // Log server start
-  // Log message to check in Render logs
+  console.log(`Backend server is running on port ${PORT}`);
   console.log(`Server should be accessible via Render URL.`);
 });
-// --- End Start Server ---
 
-// --- END OF index.js for Render ---
+// --- END OF index.js for Render (No Comments) ---
